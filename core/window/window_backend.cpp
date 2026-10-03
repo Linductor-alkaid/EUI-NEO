@@ -578,6 +578,10 @@ Handle createWindow(const WindowCreateRequest& request) {
     glfwWindowHint(GLFW_DECORATED, request.decorated ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_FLOATING, request.alwaysOnTop ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_MAXIMIZED, request.maximized ? GLFW_TRUE : GLFW_FALSE);
+    const char* appId = request.appId.c_str();
+    glfwWindowHintString(GLFW_WAYLAND_APP_ID, appId);
+    glfwWindowHintString(GLFW_X11_CLASS_NAME, appId);
+    glfwWindowHintString(GLFW_X11_INSTANCE_NAME, appId);
 
     GLFWwindow* window = glfwCreateWindow(
         request.width,
