@@ -5,7 +5,7 @@ if(NOT EXISTS "${GLFW_X11_SOURCE}")
     message(FATAL_ERROR "GLFW X11 source not found: ${GLFW_X11_SOURCE}")
 endif()
 
-set(expected_source_hash "BBCBDD40E744D3FD83E439A13E0C03F0EC6256C6C7D19A456C0BA20E1CA36C91")
+set(expected_source_hash "7C5A60A507767C5B311437A74E85E547914DF631BE4F74FA75746063762019DA")
 set(expected_output_hash "B1B9E54E20A687EC45E869D0D0E942220D68F087BF0727CB2091C7E9BF56ED12")
 get_filename_component(output_directory "${GLFW_X11_OUTPUT}" DIRECTORY)
 file(MAKE_DIRECTORY "${output_directory}")
@@ -18,7 +18,7 @@ if(source_hash STREQUAL expected_output_hash)
 endif()
 if(NOT source_hash STREQUAL expected_source_hash)
     message(FATAL_ERROR
-        "Unsupported GLFW X11 source hash ${source_hash}; expected bundled GLFW 3.4 "
+        "Unsupported GLFW X11 source hash ${source_hash}; expected pristine GLFW 3.4 "
         "${expected_source_hash} or patched ${expected_output_hash}. Review and update "
         "scripts/patch_glfw_x11_ime.cmake for this GLFW revision.")
 endif()
