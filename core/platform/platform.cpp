@@ -13,6 +13,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -272,8 +273,11 @@ CommandResult runCommand(const std::string& command) {
 #else
     std::string errorPath;
     std::string capturedCommand = command;
-    try {
-        const auto directory = std::filesystem::temp_directory_path();
+    // 库目标在非 Debug 配置以 -fno-exceptions 编译，须用非抛出重载；temp 目录
+    // 不可用时跳过 stderr 分离（与既有降级行为一致）。
+    std::error_code filesystemError;
+    const auto directory = std::filesystem::temp_directory_path(filesystemError);
+    if (!filesystemError) {
         std::string pattern = (directory / "eui-dialog-stderr-XXXXXX").string();
         std::vector<char> writablePattern(pattern.begin(), pattern.end());
         writablePattern.push_back('\0');
@@ -283,7 +287,6 @@ CommandResult runCommand(const std::string& command) {
             errorPath = writablePattern.data();
             capturedCommand += " 2>" + shellQuote(errorPath);
         }
-    } catch (...) {
     }
     FILE* pipe = popen(capturedCommand.c_str(), "r");
 #endif
