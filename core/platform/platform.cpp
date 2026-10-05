@@ -13,6 +13,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -272,22 +273,33 @@ CommandResult runCommand(const std::string& command) {
 #else
     std::string errorPath;
     std::string capturedCommand = command;
-    try {
-        const auto directory = std::filesystem::temp_directory_path();
+    std::error_code directoryError;
+    const auto directory = std::filesystem::temp_directory_path(directoryError);
+    if (!directoryError) {
         std::string pattern = (directory / "eui-dialog-stderr-XXXXXX").string();
         std::vector<char> writablePattern(pattern.begin(), pattern.end());
         writablePattern.push_back('\0');
         const int errorFd = mkstemp(writablePattern.data());
-        if (errorFd >= 0) {
-            close(errorFd);
-            errorPath = writablePattern.data();
-            capturedCommand += " 2>" + shellQuote(errorPath);
+        if (errorFd < 0) {
+            result.errorOutput = "Could not create a temporary file to capture dialog diagnostics.";
+            return result;
         }
-    } catch (...) {
+        close(errorFd);
+        errorPath = writablePattern.data();
+        capturedCommand += " 2>" + shellQuote(errorPath);
+    } else {
+        result.errorOutput = "Could not locate a temporary directory to capture dialog diagnostics.";
+        return result;
     }
     FILE* pipe = popen(capturedCommand.c_str(), "r");
 #endif
     if (pipe == nullptr) {
+#if !defined(_WIN32)
+        if (!errorPath.empty()) {
+            std::error_code ignored;
+            std::filesystem::remove(errorPath, ignored);
+        }
+#endif
         return result;
     }
     result.started = true;
@@ -458,7 +470,9 @@ bool commandWasCancelled(const CommandResult& command, const std::string& toolNa
 
 FileDialogResult resultFromCommand(const CommandResult& command, const std::string& toolName) {
     if (!command.started) {
-        return failedFileDialog(toolName + " could not be started.");
+        return failedFileDialog(command.errorOutput.empty()
+            ? toolName + " could not be started."
+            : command.errorOutput);
     }
     if (command.exitCode == 0) {
         if (command.output.empty() && !command.errorOutput.empty()) {

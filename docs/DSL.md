@@ -99,8 +99,8 @@ Debug 配置只控制诊断输出，不参与业务状态。`showDebugStatsInTit
 
 `.onStart(callback)` 在主窗口和 RenderBackend 创建成功、Runtime 初始化后、首次 `compose()` 前，
 于 UI/渲染线程调用一次。适合初始化依赖当前图形设备的应用资源或启动生产者；重复 initialize
-不会重复调用，完成一次 shutdown 后重新初始化会再次调用。若回调抛出异常，应用初始化失败，
-Runner 进入既有失败清理路径，`onShutdown` 仍可能执行，因此清理回调必须能处理部分初始化状态。
+不会重复调用，完成一次 shutdown 后重新初始化会再次调用。回调必须不抛异常，并由应用在部分初始化
+失败时自行安全清理；`onShutdown` 同样必须容忍资源尚未创建。
 
 `.onShutdown(callback)` 在 UI/渲染线程、主窗口 Runtime 和 GPU 设备销毁前调用，供应用停止自己的
 后台生产者并释放所持有的外部 GPU 图像引用。回调也可能在应用初始化失败的清理路径执行，

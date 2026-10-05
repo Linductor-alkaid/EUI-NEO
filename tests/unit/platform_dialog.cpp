@@ -1,9 +1,9 @@
 #include "core/platform/platform.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <stdexcept>
 #include <string>
 
 #if defined(__linux__)
@@ -13,8 +13,10 @@
 
 namespace {
 void require(bool condition, const char* message) {
-    if (!condition)
-        throw std::runtime_error(message);
+    if (!condition) {
+        std::fprintf(stderr, "platform_dialog: %s\n", message);
+        std::exit(1);
+    }
 }
 }
 
