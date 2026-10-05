@@ -581,11 +581,13 @@ Handle createWindow(const WindowCreateRequest& request) {
 #if defined(GLFW_WAYLAND_APP_ID) || defined(GLFW_X11_CLASS_NAME)
     const char* appId = request.appId.c_str();
 #endif
-#ifdef GLFW_WAYLAND_APP_ID
+#if defined(GLFW_WAYLAND_APP_ID)
     glfwWindowHintString(GLFW_WAYLAND_APP_ID, appId);
 #endif
-#ifdef GLFW_X11_CLASS_NAME
+#if defined(GLFW_X11_CLASS_NAME)
     glfwWindowHintString(GLFW_X11_CLASS_NAME, appId);
+#endif
+#if defined(GLFW_X11_INSTANCE_NAME)
     glfwWindowHintString(GLFW_X11_INSTANCE_NAME, appId);
 #endif
 

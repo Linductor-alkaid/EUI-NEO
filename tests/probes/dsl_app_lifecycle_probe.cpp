@@ -1,9 +1,19 @@
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
+#include <glad/glad.h>
+
 #include "eui_neo.h"
 #include "eui/detail/dsl_app_impl.h"
 #include "core/render/render_backend.h"
 #include "core/window/window_backend.h"
-
-#include <glad/glad.h>
 #if defined(EUI_WINDOW_BACKEND_SDL2)
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -12,8 +22,7 @@
 #include <GLFW/glfw3.h>
 #endif
 
-#include <iostream>
-#include <stdexcept>
+#include <cstdio>
 
 namespace {
 int starts = 0;
@@ -21,9 +30,10 @@ int shutdowns = 0;
 int composes = 0;
 bool startBeforeFirstCompose = false;
 
-void require(bool condition, const char* message) {
+bool require(bool condition, const char* message) {
     if (!condition)
-        throw std::runtime_error(message);
+        std::fprintf(stderr, "dsl_app_lifecycle_probe: %s\n", message);
+    return condition;
 }
 }
 
@@ -61,22 +71,29 @@ int main() {
     auto window = core::window::createWindow(request);
     auto backend = core::render::createRenderBackend(window);
     int result = 0;
-    try {
-        require(window && backend && backend->initialize(), "window backend initialization");
+    bool initialized = false;
+    if (!require(window && backend && backend->initialize(), "window backend initialization")) {
+        result = 1;
+    } else {
         backend->makeCurrent();
         core::render::ScopedRenderBackend scope(*backend);
-        require(app::initialize(window), "app initialization");
-        require(starts == 1 && composes == 0, "onStart did not run once before first compose");
-        require(app::update(window, 0, 320, 240, 1, 1, false), "initial app update");
-        require(composes == 1 && startBeforeFirstCompose, "first compose preceded onStart");
-        app::shutdown();
-        require(shutdowns == 1, "onShutdown did not pair with onStart");
-        std::cout << "dsl_app_lifecycle_probe: passed\n";
-    } catch (const std::exception& error) {
-        std::cerr << "dsl_app_lifecycle_probe: " << error.what() << '\n';
-        result = 1;
-        app::shutdown();
+        initialized = app::initialize(window);
+        if (!require(initialized, "app initialization")) {
+            result = 1;
+        } else {
+            if (!require(starts == 1 && composes == 0, "onStart did not run once before first compose") ||
+                !require(app::update(window, 0, 320, 240, 1, 1, false), "initial app update") ||
+                !require(composes == 1 && startBeforeFirstCompose, "first compose preceded onStart")) {
+                result = 1;
+            }
+            app::shutdown();
+            initialized = false;
+            if (!require(shutdowns == 1, "onShutdown did not pair with onStart"))
+                result = 1;
+        }
     }
+    if (initialized)
+        app::shutdown();
     backend.reset();
     core::window::destroyWindow(window);
 #if defined(EUI_WINDOW_BACKEND_SDL2)

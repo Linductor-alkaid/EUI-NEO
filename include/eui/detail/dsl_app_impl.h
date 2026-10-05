@@ -9,8 +9,6 @@
 #include "core/render/text.h"
 
 #include <algorithm>
-#include <cstdio>
-#include <exception>
 #include <filesystem>
 #include <vector>
 
@@ -293,22 +291,10 @@ bool initialize(core::window::Handle window) {
         return false;
     }
     if (!state.started) {
-        try {
-            if (config.startHandler) {
-                config.startHandler();
-            }
-            state.started = true;
-        } catch (const std::exception& error) {
-            std::fprintf(stderr, "EUI app onStart callback failed: %s\n", error.what());
-            detail::dslRuntime().shutdown();
-            state.started = false;
-            return false;
-        } catch (...) {
-            std::fprintf(stderr, "EUI app onStart callback failed with an unknown exception\n");
-            detail::dslRuntime().shutdown();
-            state.started = false;
-            return false;
+        if (config.startHandler) {
+            config.startHandler();
         }
+        state.started = true;
     }
     return true;
 }
