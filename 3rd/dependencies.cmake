@@ -235,7 +235,10 @@ if(EUI_WINDOW_BACKEND STREQUAL "glfw")
         message(STATUS "Using existing GLFW target: glfw")
     else()
         if(EUI_DEPS_MODE STREQUAL "auto")
-            find_package(glfw3 CONFIG QUIET)
+            # 桌面标识 hint（GLFW_WAYLAND_APP_ID/GLFW_X11_*）为 3.4 API；auto 模式
+            # 只接受 3.4+，更旧的系统 GLFW 交给 bundled 源（源级兼容见
+            # window_backend.cpp 的宏守卫）。
+            find_package(glfw3 3.4 CONFIG QUIET)
         endif()
 
         if(NOT TARGET glfw)
