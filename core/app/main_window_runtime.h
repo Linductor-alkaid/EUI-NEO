@@ -115,13 +115,23 @@ public:
 
         afterUpdate();
 
-        // Input/compose callbacks may resize the native window. Do not swap an
-        // old-size cache into the new drawable; retry with fresh layout next frame.
-        if (!(metrics == readMetrics())) {
+        // Input/compose callbacks may resize the drawable. Recompose once with
+        // fresh metrics and zero elapsed time; consumed input is not replayed.
+        MainWindowMetrics renderMetrics = readMetrics();
+        if (!(metrics == renderMetrics)) {
             runner_.paintRequested = true;
             app::detail::requestFullPaint();
-            core::platform::requestFrame();
-            return false;
+            if (renderMetrics.valid()) {
+                renderBackend.makeCurrent();
+                app::update(window, 0.0f, renderMetrics.framebufferWidth, renderMetrics.framebufferHeight,
+                            renderMetrics.dpiScale, renderMetrics.pointerScale, false, inputEnabled);
+            }
+            // A second geometry change is deferred rather than spinning inside
+            // one frame. Keep both the repaint and an explicit wake for idle apps.
+            if (!renderMetrics.valid() || !(renderMetrics == readMetrics())) {
+                core::platform::requestFrame();
+                return false;
+            }
         }
 
         if (!runner_.paintRequested) {
@@ -132,11 +142,11 @@ public:
         renderBackend.beginFrame({
             window,
             core::window::nativeWindowInfo(window),
-            metrics.framebufferWidth,
-            metrics.framebufferHeight,
-            metrics.dpiScale
+            renderMetrics.framebufferWidth,
+            renderMetrics.framebufferHeight,
+            renderMetrics.dpiScale
         });
-        app::render(metrics.framebufferWidth, metrics.framebufferHeight, metrics.dpiScale);
+        app::render(renderMetrics.framebufferWidth, renderMetrics.framebufferHeight, renderMetrics.dpiScale);
         // Map only after drawing, immediately before swapping the prepared
         // buffer. Swapping while hidden can discard its contents on X11.
         if (firstFrameReady_) {
