@@ -288,8 +288,8 @@ bool sendX11MoveResizeForWindow(Handle window, int direction) {
         info.info.x11.display == nullptr) {
         return false;
     }
-    return sendX11MoveResize(info.info.x11.display,
-                             static_cast<std::uint64_t>(info.info.x11.window), direction);
+    return detail::sendX11MoveResize(info.info.x11.display,
+                                     static_cast<std::uint64_t>(info.info.x11.window), direction);
 #else
     (void)direction;
     return false;
@@ -612,9 +612,9 @@ bool sendX11MoveResizeForWindow(Handle window, int direction) {
         return false;
     }
 #endif
-    return sendX11MoveResize(glfwGetX11Display(),
-                             static_cast<std::uint64_t>(glfwGetX11Window(glfwWindow)),
-                             direction);
+    return detail::sendX11MoveResize(glfwGetX11Display(),
+                                     static_cast<std::uint64_t>(glfwGetX11Window(glfwWindow)),
+                                     direction);
 #else
     (void)window;
     (void)direction;
