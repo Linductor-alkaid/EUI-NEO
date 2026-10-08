@@ -8,7 +8,6 @@
 #include <windows.h>
 #endif
 
-#include <glad/glad.h>
 
 #include "eui_neo.h"
 #include "eui/detail/dsl_app_impl.h"
@@ -67,7 +66,7 @@ int main() {
     request.width = 320;
     request.height = 240;
     request.title = "DSL app lifecycle probe";
-    request.renderApi = core::window::RenderApi::OpenGL;
+    request.renderApi = core::render::windowRenderApi();
     auto window = core::window::createWindow(request);
     auto backend = core::render::createRenderBackend(window);
     int result = 0;
