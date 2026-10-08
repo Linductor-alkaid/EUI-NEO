@@ -68,13 +68,13 @@ public:
         const float deltaSeconds = runner_.consumeFrameDelta(frameTime);
 
         updateAndRender(window,
-                                              renderBackend,
-                                              readMetrics(),
-                                              deltaSeconds,
-                                              updateRequested,
-                                              inputEnabled,
-                                              std::forward<AfterUpdateFn>(afterUpdate),
-                                              readMetrics);
+                        renderBackend,
+                        readMetrics(),
+                        deltaSeconds,
+                        updateRequested,
+                        inputEnabled,
+                        std::forward<AfterUpdateFn>(afterUpdate),
+                        readMetrics);
 
         updateChildren(deltaSeconds, updateRequested);
         runner_.updateFrameTitle(core::window::timeSeconds(), std::forward<SetTitleFn>(setTitle));
