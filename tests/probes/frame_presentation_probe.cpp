@@ -103,9 +103,10 @@ int main() {
     const bool stalePresented = runtime.updateAndRender(
         window, *backend, original, 0, false, true, [&] { resize(window, 480, 360); },
         [&] { return metrics(window); });
-    require(readyCalls == 0, "resize exposed an obsolete initial frame");
-    require(!stalePresented, "presented old-size frame after resize during update");
-    require(runner.paintRequested, "resize lost pending repaint");
+    require(stalePresented, "update-time resize did not produce a fresh-size frame");
+    require(readyCalls == 1, "initial fresh-size frame was not made ready");
+    require(core::render::lastRenderFrameStats().framebufferWidth == metrics(window).framebufferWidth,
+            "presented old-size frame after resize during update");
     runner.paintRequested = true;
     require(runtime.updateAndRender(
                 window, *backend, metrics(window), 0, false, true, [] {}, [&] { return metrics(window); }),
@@ -117,8 +118,10 @@ int main() {
     const auto verifyDeferred = [&](app::MainWindowMetrics changed, const char* message) {
         runner.paintRequested = true;
         const auto current = metrics(window);
+        int reads = 0;
         require(!runtime.updateAndRender(
-                    window, *backend, current, 0, false, true, [] {}, [&] { return changed; }),
+                    window, *backend, current, 0, false, true, [] {},
+                    [&] { return ++reads == 1 ? changed : current; }),
                 message);
         require(runner.paintRequested && runner.renderedFrames == frames,
                 "deferred frame cleared repaint or counted a present");

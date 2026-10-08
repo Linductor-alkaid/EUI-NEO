@@ -758,8 +758,6 @@ int eui_app_run() {
             mainWindowRuntime.markUnavailableFrame(core::window::timeSeconds());
             continue;
         }
-        const float dpi = dpiScale(window);
-        const float pointer = pointerScale(window);
 #if defined(EUI_RENDER_BACKEND_OPENGL) && (defined(_WIN32) || defined(__APPLE__))
         if (state.startupFullPaintFrames > 0) {
             state.paintRequested = true;

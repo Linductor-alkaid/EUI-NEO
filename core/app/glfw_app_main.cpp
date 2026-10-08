@@ -583,8 +583,6 @@ int eui_app_run() {
             continue;
         }
 
-        const float dpiScale = getDpiScale(window);
-        const float pointerScale = getPointerScale(window);
         const bool mainInputEnabled = windowState.modalChildWindow == nullptr;
 
         mainWindowRuntime.runFrame(
