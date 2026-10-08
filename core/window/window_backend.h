@@ -29,6 +29,9 @@ void destroyCursor(CursorHandle cursor);
 
 void setWindowIcon(Handle window, int width, int height, unsigned char* pixels);
 void setImeCursorRect(Handle window, float x, float y, float width, float height);
+// Reports whether the created framebuffer actually carries alpha (GLFW
+// honors the transparent request; SDL2 and compositor-less X11 do not).
+bool framebufferTransparent(Handle window);
 void installInputCallbacks(Handle window);
 void uninstallInputCallbacks(Handle window);
 bool queryImeComposition(Handle window, std::string& text, bool& composing);
