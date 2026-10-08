@@ -36,6 +36,9 @@ void setImeCursorRect(Handle window, float x, float y, float width, float height
 // current platform/backend cannot delegate; callers keep their own fallback.
 bool beginWindowMove(Handle window);
 bool beginWindowResize(Handle window, WindowResizeEdge edge);
+// Reports whether the created framebuffer actually carries alpha (GLFW
+// honors the transparent request; SDL2 and compositor-less X11 do not).
+bool framebufferTransparent(Handle window);
 void installInputCallbacks(Handle window);
 void uninstallInputCallbacks(Handle window);
 bool queryImeComposition(Handle window, std::string& text, bool& composing);

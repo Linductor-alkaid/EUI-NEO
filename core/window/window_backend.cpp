@@ -565,6 +565,12 @@ bool beginWindowResize(Handle window, WindowResizeEdge edge) {
     return sendX11MoveResizeForWindow(window, static_cast<int>(edge));
 }
 
+bool framebufferTransparent(Handle) {
+    // SDL2 has no transparent-window flag (it arrived in SDL3), so the
+    // request.transparent hint cannot be honored on this backend.
+    return false;
+}
+
 } // namespace core::window
 
 #else
@@ -634,6 +640,7 @@ Handle createWindow(const WindowCreateRequest& request) {
     }
     glfwWindowHint(GLFW_RESIZABLE, request.resizable ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_DECORATED, request.decorated ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, request.transparent ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_FLOATING, request.alwaysOnTop ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_MAXIMIZED, request.maximized ? GLFW_TRUE : GLFW_FALSE);
 #if defined(GLFW_WAYLAND_APP_ID) || defined(GLFW_X11_CLASS_NAME)
@@ -744,6 +751,13 @@ bool beginWindowMove(Handle window) {
 
 bool beginWindowResize(Handle window, WindowResizeEdge edge) {
     return sendX11MoveResizeForWindow(window, static_cast<int>(edge));
+}
+
+bool framebufferTransparent(Handle window) {
+    // Reports what the platform actually granted: without a compositor an
+    // X11 window cannot honor the transparent hint.
+    return window != nullptr &&
+           glfwGetWindowAttrib(static_cast<GLFWwindow*>(window), GLFW_TRANSPARENT_FRAMEBUFFER) == GLFW_TRUE;
 }
 
 } // namespace core::window
