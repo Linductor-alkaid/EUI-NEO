@@ -186,6 +186,8 @@ struct AtlasPage {
     int x = 1;
     int y = 1;
     int rowHeight = 0;
+    int usedWidth = 0;
+    int usedHeight = 0;
     std::uint64_t generation = 0;
     std::vector<unsigned char> pixels;
     std::unordered_map<std::string, TextPrimitive::Glyph> glyphs;
@@ -229,18 +231,14 @@ bool ensureAtlasPage(AtlasPage& page, int width, int height, int channels) {
     page.y = 1;
     page.rowHeight = 0;
     page.generation = ++textAtlasGenerationCounter();
-    page.pixels.assign(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * static_cast<std::size_t>(channels), 0);
-    return !page.pixels.empty();
+    page.pixels.clear();
+    return true;
 }
 
 bool retainSharedTextAtlas() {
     SharedTextAtlas& atlas = sharedTextAtlas();
     ++atlas.references;
-    if (ensureAtlasPage(atlas.gray, kGrayAtlasSize, kGrayAtlasSize, 1)) {
-        return true;
-    }
-    atlas.references = std::max(0, atlas.references - 1);
-    return false;
+    return true;
 }
 
 void releaseAtlasPage(AtlasPage& page) {
@@ -951,7 +949,7 @@ bool appendToAtlas(AtlasPage& page,
                    int height,
                    int channels,
                    TextPrimitive::Glyph& glyph) {
-    if (width <= 0 || height <= 0 || pixels == nullptr || channels <= 0 || page.pixels.empty()) {
+    if (width <= 0 || height <= 0 || pixels == nullptr || channels <= 0) {
         return true;
     }
 
@@ -962,6 +960,13 @@ bool appendToAtlas(AtlasPage& page,
     }
     if (page.y + height + 1 >= page.height) {
         return false;
+    }
+
+    const std::size_t requiredBytes = static_cast<std::size_t>(page.y + height) *
+                                      static_cast<std::size_t>(page.width) *
+                                      static_cast<std::size_t>(page.channels);
+    if (page.pixels.size() < requiredBytes) {
+        page.pixels.resize(requiredBytes, 0);
     }
 
     const int copyChannels = std::min(channels, page.channels);
@@ -986,6 +991,8 @@ bool appendToAtlas(AtlasPage& page,
 
     page.x += width + 1;
     page.rowHeight = std::max(page.rowHeight, height);
+    page.usedWidth = std::max(page.usedWidth, page.x);
+    page.usedHeight = std::max(page.usedHeight, page.y + page.rowHeight);
     page.generation = ++textAtlasGenerationCounter();
     return true;
 }
@@ -1478,6 +1485,8 @@ void TextPrimitive::Impl::render(int windowWidth, int windowHeight) {
         core::render::TextAtlasPageKind::Gray,
         atlas.gray.width,
         atlas.gray.height,
+        atlas.gray.usedWidth,
+        atlas.gray.usedHeight,
         atlas.gray.channels,
         atlas.gray.generation,
         atlas.gray.pixels.empty() ? nullptr : atlas.gray.pixels.data()
@@ -1486,6 +1495,8 @@ void TextPrimitive::Impl::render(int windowWidth, int windowHeight) {
         core::render::TextAtlasPageKind::Color,
         atlas.color.width,
         atlas.color.height,
+        atlas.color.usedWidth,
+        atlas.color.usedHeight,
         atlas.color.channels,
         atlas.color.generation,
         atlas.color.pixels.empty() ? nullptr : atlas.color.pixels.data()
@@ -1594,6 +1605,16 @@ bool TextPrimitive::Impl::ensureGlyph(const ShapedGlyph& shaped) {
     }
 
     if (colorBitmap) {
+        if (!ensureAtlasPage(atlas.gray, kGrayAtlasSize, kGrayAtlasSize, 1)) {
+            cacheGlyph(shaped.key, glyph);
+            return true;
+        }
+        if (atlas.gray.usedWidth == 0 || atlas.gray.usedHeight == 0) {
+            atlas.gray.pixels.resize(static_cast<std::size_t>(atlas.gray.width) * atlas.gray.channels, 0);
+            atlas.gray.usedWidth = 1;
+            atlas.gray.usedHeight = 1;
+            atlas.gray.generation = ++textAtlasGenerationCounter();
+        }
         if (!ensureAtlasPage(atlas.color, kColorAtlasSize, kColorAtlasSize, 4)) {
             cacheGlyph(shaped.key, glyph);
             return true;
@@ -1609,6 +1630,10 @@ bool TextPrimitive::Impl::ensureGlyph(const ShapedGlyph& shaped) {
         }
         atlas.color.glyphs[cacheKey] = glyph;
     } else if (bitmap.pixel_mode == FT_PIXEL_MODE_GRAY) {
+        if (!ensureAtlasPage(atlas.gray, kGrayAtlasSize, kGrayAtlasSize, 1)) {
+            cacheGlyph(shaped.key, glyph);
+            return true;
+        }
         std::vector<unsigned char> gray = copyGrayBitmap(bitmap);
         if (gray.empty()) {
             cacheGlyph(shaped.key, glyph);
